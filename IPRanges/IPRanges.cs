@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Buffers.Binary;
+using System.Net;
 
 public class IPRanges
 {
@@ -24,14 +25,9 @@ public class IPRanges
             {
                 byte[] start = IPAddress.Parse(v.Start).GetAddressBytes();
                 byte[] end = IPAddress.Parse(v.End).GetAddressBytes();
-                if (addr[0] >= start[0] &&
-                    addr[1] >= start[1] &&
-                    addr[2] >= start[2] &&
-                    addr[3] >= start[3] &&
-                    addr[0] <= end[0] &&
-                    addr[1] <= end[1] &&
-                    addr[2] <= end[2] &&
-                    addr[3] <= end[3])
+                if (addr[0] < start[0]) break;
+                if (BinaryPrimitives.ReadUInt32BigEndian(addr) >= BinaryPrimitives.ReadUInt32BigEndian(start) &&
+                    BinaryPrimitives.ReadUInt32BigEndian(addr) <= BinaryPrimitives.ReadUInt32BigEndian(end))
                 {
                     return v;
                 }
