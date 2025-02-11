@@ -5,31 +5,48 @@ public class IPRanges
 {
     public class Range
     {
-        public string Start { get; set; }
-        public string End { get; set; }
-        public string Province { get; set; }
-        public string City { get; set; }
-        public string ISP { get; set; }
+        public required string Start { get; set; }
+        public required string End { get; set; }
+        public required string Province { get; set; }
+        public required string City { get; set; }
+        public required string ISP { get; set; }
     }
 
     private Range[] Values;
 
-    public IPRanges(Range[] value) => this.Values = value;
+    private int[] Indexing = new int[byte.MaxValue + 1];
+
+    public IPRanges(Range[] value)
+    {
+        int last = -1;
+        for (int i = 0; i < value.Length; i++)
+        {
+            var curr = IPAddress.Parse(value[i].Start).GetAddressBytes().First();
+            if (last != curr)
+            {
+                Indexing[curr] = i;
+                last = curr;
+            }
+        }
+        this.Values = value;
+    }
 
     public Range GetRange(IPAddress ip)
     {
         if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
         {
             byte[] addr = ip.GetAddressBytes();
-            foreach (var v in Values)
+            for (int i = Indexing[addr.First()]; i < Values.Length; i++)
             {
-                byte[] start = IPAddress.Parse(v.Start).GetAddressBytes();
-                byte[] end = IPAddress.Parse(v.End).GetAddressBytes();
-                if (addr[0] < start[0]) break;
+                byte[] start = IPAddress.Parse(Values[i].Start).GetAddressBytes();
+                byte[] end = IPAddress.Parse(Values[i].End).GetAddressBytes();
+
+                if (BinaryPrimitives.ReadUInt32BigEndian(addr) < BinaryPrimitives.ReadUInt32BigEndian(start)) break;
+
                 if (BinaryPrimitives.ReadUInt32BigEndian(addr) >= BinaryPrimitives.ReadUInt32BigEndian(start) &&
                     BinaryPrimitives.ReadUInt32BigEndian(addr) <= BinaryPrimitives.ReadUInt32BigEndian(end))
                 {
-                    return v;
+                    return Values[i];
                 }
             }
         }
